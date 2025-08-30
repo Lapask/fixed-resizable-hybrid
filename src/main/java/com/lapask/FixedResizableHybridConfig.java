@@ -3,13 +3,12 @@ package com.lapask;
 import com.lapask.config.OrbsPosition;
 import com.lapask.config.ResizeBy;
 import java.awt.Color;
-import java.awt.event.KeyEvent;
 import net.runelite.client.config.Alpha;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
-import net.runelite.client.config.Keybind;
+import com.lapask.config.BackgroundMode;
 
 @ConfigGroup("fixedresizablehybrid")
 public interface FixedResizableHybridConfig extends Config
@@ -122,26 +121,38 @@ public interface FixedResizableHybridConfig extends Config
 	}
 
 	@ConfigItem(
-		keyName = "gapColor",
-		name = "Gap Color",
+		keyName = "backgroundMode",
+		name = "Background Mode",
+		description = "Choose solid color or tiled stone for the gap background.",
+		position = 0, // adjust ordering within gapSettings as you like
+		section = gapSettings
+	)
+	default BackgroundMode backgroundMode()
+	{
+		return BackgroundMode.TILED_STONE;
+	}
+
+	@ConfigItem(
+		keyName = "BackgroundColor",
+		name = "Background Color",
 		description = "Color used for the gap between the inventory and minimap.",
 		position = 2,
 		section = gapSettings
 	)
-	default Color gapColor() 
+	default Color backgroundColor()
 	{
 		return new Color(47, 42, 32);
 	}
 
 @ConfigItem(
-	keyName = "gapBorderColor",
-	name = "Gap Border Color",
-	description = "Color overlay applied on top of the gap border image (supports transparency).",
+	keyName = "gapBackgroundTint",
+	name = "Gap / Background Tint",
+	description = "Color tint applied on top of the gap border and background (supports transparency).",
 	position = 3,
 	section = gapSettings
 )	
 	@Alpha
-	default Color gapBorderColor() 
+	default Color gapBackgroundTint()
 	{
 		// Default: transparent
 		return new Color(255, 255, 255, 0);
