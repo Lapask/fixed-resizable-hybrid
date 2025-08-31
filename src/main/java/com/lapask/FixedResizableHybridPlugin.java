@@ -14,7 +14,6 @@ import net.runelite.api.SpriteID;
 import net.runelite.api.SpritePixels;
 import net.runelite.api.Varbits;
 import net.runelite.api.events.BeforeRender;
-import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.VarbitChanged;
@@ -44,7 +43,6 @@ import net.runelite.client.util.ImageUtil;
 	description = "Skins the \"Resizable - Classic Layout\" to match fixed mode.",
 	tags = {"resize", "resizable", "classic", "fixed", "widescreen", "legacy", "hybrid"}
 )
-
 public class FixedResizableHybridPlugin extends Plugin
 {
 
@@ -127,7 +125,7 @@ public class FixedResizableHybridPlugin extends Plugin
 		//clears list after so it's run as little as possible
 		if (!widgetsToFixBeforeRender.isEmpty())
 		{
-			//log.debug("widgetsToFixBeforeRender being processed");
+			log.debug("widgetsToFixBeforeRender being processed");
 			for (Integer identifier : widgetsToFixBeforeRender)
 			{
 				switch (identifier)
@@ -196,16 +194,6 @@ public class FixedResizableHybridPlugin extends Plugin
 	public void onScriptPostFired(ScriptPostFired event)
 	{
 		int scriptId = event.getScriptId();
-
-		if (scriptId == 901){
-			gameClientLayoutChanged();
-			return;
-		}
-
-		if (!widgetsModified){
-			return;
-		}
-
 		switch (scriptId)
 		{
 			case 909: // Interface boxes recalculated (e.g., bank inventory, settings panel, etc)
@@ -216,7 +204,7 @@ public class FixedResizableHybridPlugin extends Plugin
 				widgetsToFixBeforeRender.add(STAT_GUIDE_ID);
 				break;
 			case 904: // Window resized
-				if (config.isWideChatbox() && getGameClientLayout() == 2)
+				if (widgetsModified && config.isWideChatbox() && getGameClientLayout() == 2)
 				{
 					//log.debug("script 904: widenChat() for window resize");
 					chatboxChanged();
@@ -243,6 +231,10 @@ public class FixedResizableHybridPlugin extends Plugin
 						invWidget.setHidden(false);
 					}
 				}
+				break;
+			case 901: // Game Interface Mode changes
+				//log.debug("script 901: gameClientLayoutChanged()");
+				gameClientLayoutChanged();
 				break;
 			case 175:
 			case 178:
@@ -337,31 +329,17 @@ public class FixedResizableHybridPlugin extends Plugin
 	@Subscribe
 	public void onWidgetClosed(WidgetClosed event)
 	{
-		if (!event.isUnload()){
-			return;
-		}
 		int groupID = event.getGroupId();
 
-		if (WIDGETS_WITH_BACKGROUNDS.contains(groupID))
+		if (WIDGETS_WITH_BACKGROUNDS.contains(groupID) && event.isUnload())
 		{
 			//log.debug("onWidgetClosed(): fairy ring closed");
 			widgetWithBackgroundLoaded = false;
 		}
 	}
-	@Subscribe
-	public void onGameStateChanged(GameStateChanged gameStateChanged)
-	{
-		clientThread.invokeLater(this::gameClientLayoutChanged);
-	}
 
-
-	private boolean isMinimapLoaded()
-	{
-		Widget minimapContainer = client.getWidget(InterfaceID.MINIMAP,0);
-		return minimapContainer != null && !minimapContainer.isHidden();
-	}
 	// Will continue trying to initialize until the GameState has been stabilized as logged in (e.g. layout == 2 or 3)
-	// Also ensures the widgets we are trying to modify are fully loaded using the boolean minimapLoaded
+	// For some reason you can't use invoke() here or else it will delete the minimap orbs when you change interface mode.
 	private void queuePluginInitialization()
 	{
 		//log.debug("queuePluginInitialization()");
@@ -370,7 +348,7 @@ public class FixedResizableHybridPlugin extends Plugin
 		{
 			// Uses getGameClientLayout() to determine when the game is ready to be initialized.
 			int gameClientLayout = getGameClientLayout();
-			if (gameClientLayout != -1 && isMinimapLoaded())
+			if (gameClientLayout != -1)
 			{
 				if (gameClientLayout == 2)
 				{
@@ -1082,11 +1060,11 @@ public class FixedResizableHybridPlugin extends Plugin
 		}
 
 		Widget minimapSpriteContainer = client.getWidget(classicResizableGroupId, 22);
-
 		if (minimapSpriteContainer == null)
 		{
 			return;
 		}
+
 		if (minimapSpriteContainer.getDynamicChildren().length < 6)
 		{
 			createMinimapInvSprites();
