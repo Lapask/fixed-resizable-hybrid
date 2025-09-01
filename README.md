@@ -36,10 +36,6 @@
 ## Future Plans
 - Improve functionality within cutscenes
   - This is a known issue. Some newer quests have cutscenes that might interfere with the plugin. It is actively being addressed, as each quest has slightly different under-the-hood triggers that haven't all been caught
-- Create an OSRS-themed tilable background sprite/image
-  - Goal: Fill the gap between minimap and inventory seamlessly when people want larger window height without scaling. 
-  - Currently the gap background customization is limited to solid colors and a thin gap border sprite.
-    - Photoshop connoisseurs, please reach out!
 ---
 ## Known Issues
 - In their default positions, the orbs around the minimap overlap with the minimap itself, and there are a few pixels in which you click both the orb (e.g. run orb) and on the minimap with one click. 

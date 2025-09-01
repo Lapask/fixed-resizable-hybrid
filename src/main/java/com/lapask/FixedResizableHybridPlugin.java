@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.lapask.config.OrbsPosition;
 import com.lapask.config.ResizeBy;
+import com.lapask.dev.InterfaceIdMapper;
 import java.awt.image.BufferedImage;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -19,8 +20,7 @@ import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
-import net.runelite.api.widgets.ComponentID;
-import net.runelite.api.widgets.InterfaceID;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
 import net.runelite.api.widgets.WidgetSizeMode;
@@ -67,8 +67,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private boolean resizeOnGameTick = false;
 	private boolean widgetsModified = false;
 	private final HashMap<Integer, WidgetState> originalStates = new HashMap<>();
-	private static final int classicResizableGroupId = InterfaceID.RESIZABLE_VIEWPORT;
-	private static final int OLD_SCHOOL_BOX_ID = ComponentID.RESIZABLE_VIEWPORT_RESIZABLE_VIEWPORT_OLD_SCHOOL_BOX;
+	private static final int OLD_SCHOOL_BOX_ID = InterfaceID.ToplevelOsrsStretch.HUD_CONTAINER_FRONT;
 	private static final int STAT_GUIDE_ID = 14024705;
 	private boolean widgetWithBackgroundLoaded = false;
 	private static final Set<String> onConfigChangedTriggerPlugins = Set.of("fixedresizablehybrid", "interfaceStyles", "runelite", "resourcepacks");
@@ -78,7 +77,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private int wideChatViewportOffset = 23;
 	private List<Integer> widgetsToFixBeforeRender = new ArrayList<Integer>();
 	private static final Set<Integer> WIDGETS_WITH_BACKGROUNDS = Set.of(
-		InterfaceID.FAIRY_RING, // Fairy ring
+		398, // Fairy ring
 		416,  // Canoe interface (choose canoe)
 		647,  // Canoe interface (choose destination)
 		224   // Boat travelling (e.g., to Neitiznot)
@@ -133,7 +132,7 @@ public class FixedResizableHybridPlugin extends Plugin
 					case STAT_GUIDE_ID:
 						fixStatsGuide();
 						break;
-					case InterfaceID.FAIRY_RING:
+					case 398: // Fairy Ring
 					case 416:
 					case 647:
 						fixWidgetBackground();
@@ -225,7 +224,7 @@ public class FixedResizableHybridPlugin extends Plugin
 				fixInvBackground();
 				if (cutSceneActive)
 				{
-					Widget invWidget = client.getWidget(classicResizableGroupId, 97);
+					Widget invWidget = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU);
 					if (invWidget != null && invWidget.isHidden())
 					{
 						invWidget.setHidden(false);
@@ -399,7 +398,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private Dimension calculateAspectRatioDimensions()
 	{
 		//log.debug("calculateAspectRatioDimensions()");
-		Widget fullCanvas = client.getWidget(classicResizableGroupId, 34);
+		Widget fullCanvas = client.getWidget(InterfaceID.ToplevelOsrsStretch.GAMEFRAME);
 		if (fullCanvas == null || fullCanvas.isHidden())
 		{
 			return null;
@@ -497,17 +496,17 @@ public class FixedResizableHybridPlugin extends Plugin
 		//log.debug("getGameClientLayout()");
 		if (client.getGameState() == GameState.LOGGED_IN)
 		{
-			Widget classicResizableWidget = client.getWidget(InterfaceID.RESIZABLE_VIEWPORT, 0);
+			Widget classicResizableWidget = client.getWidget(InterfaceID.ToplevelOsrsStretch.CONTROL);
 			if (classicResizableWidget != null && !classicResizableWidget.isHidden())
 			{
 				return 2;
 			}
-			Widget modernResizableWidget = client.getWidget(InterfaceID.RESIZABLE_VIEWPORT_BOTTOM_LINE, 0);
+			Widget modernResizableWidget = client.getWidget(InterfaceID.ToplevelPreEoc.CONTROL);
 			if (modernResizableWidget != null && !modernResizableWidget.isHidden())
 			{
 				return 3;
 			}
-			Widget classicFixedWidget = client.getWidget(InterfaceID.FIXED_VIEWPORT, 0);
+			Widget classicFixedWidget = client.getWidget(InterfaceID.Toplevel.UNIVERSE);
 			if (classicFixedWidget != null && !classicFixedWidget.isHidden())
 			{
 				return 1;
@@ -557,8 +556,8 @@ public class FixedResizableHybridPlugin extends Plugin
 		//log.debug("fixWorldMapWikiStoreActAdvOrbs()");
 		if (getGameClientLayout() == 2)
 		{
-			Widget worldMapOrb = client.getWidget(ComponentID.MINIMAP_WORLDMAP_ORB);
-			Widget wikiBanner = client.getWidget(ComponentID.MINIMAP_WIKI_BANNER_PARENT);
+			Widget worldMapOrb = client.getWidget(InterfaceID.Orbs.ORB_WORLDMAP);
+			Widget wikiBanner = client.getWidget(InterfaceID.Orbs.WIKI);
 			Widget storeOrb = client.getWidget(160, 42);
 			Widget activityAdviserOrb = client.getWidget(160, 47);
 			OrbsPosition positionMode = config.orbsPosition();
@@ -593,8 +592,8 @@ public class FixedResizableHybridPlugin extends Plugin
 		{
 			return;
 		}
-		Widget clickWindow = client.getWidget(classicResizableGroupId, 92);
-		Widget renderViewport = client.getWidget(classicResizableGroupId, 91);
+		Widget clickWindow = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT_TRACKER_BACK);
+		Widget renderViewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
 		if (clickWindow != null && renderViewport != null)
 		{
 			clickWindow.setXPositionMode(0);
@@ -610,7 +609,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private void fixInterfaceDimensions()
 	{
 		//log.debug("fixInterfaceDimensions()");
-		Widget renderViewport = client.getWidget(classicResizableGroupId, 91);
+		Widget renderViewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
 
 		fixIngameOverlayWidgets();
 
@@ -664,9 +663,9 @@ public class FixedResizableHybridPlugin extends Plugin
 
 	private void fixWidgetBackground()
 	{
-		Widget widgetBackground = client.getWidget(classicResizableGroupId, 14);
-		Widget widgetInterface = client.getWidget(classicResizableGroupId, 16);
-		Widget mainViewport = client.getWidget(classicResizableGroupId, 91);
+		Widget widgetBackground = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAINMODAL_BACKGROUNDS);
+		Widget widgetInterface = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAINMODAL);
+		Widget mainViewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
 		Widget oldSchoolBox = client.getWidget(OLD_SCHOOL_BOX_ID);
 
 		// Ensure all required widgets are present
@@ -788,7 +787,7 @@ public class FixedResizableHybridPlugin extends Plugin
 		if (widgetsModified)
 		{
 			//log.debug("fixInvBackground()");
-			Widget invBackground = client.getWidget(classicResizableGroupId, 38);
+			Widget invBackground = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_BACKGROUND);
 			if (invBackground != null && invBackground.getSpriteId() == 897)
 			{
 				saveWidgetState(invBackground);
@@ -906,14 +905,14 @@ public class FixedResizableHybridPlugin extends Plugin
 	{
 		//log.debug("removeAddedWidgets() (inv+minimap)");
 		//Deletes added minimap sprites + bottom border sprite
-		Widget minimapDrawArea = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_MINIMAP_DRAW_AREA);
+		Widget minimapDrawArea = client.getWidget(InterfaceID.ToplevelOsrsStretch.MINIMAP);
 		if (minimapDrawArea != null && minimapDrawArea.getParent() != null)
 		{
 			minimapDrawArea.getParent().deleteAllChildren();
 		}
 
 		// Deletes added inventory sprites
-		Widget invDynamicParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_INVENTORY_PARENT);
+		Widget invDynamicParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU);
 		if (invDynamicParent != null)
 		{
 			invDynamicParent.deleteAllChildren();
@@ -969,10 +968,10 @@ public class FixedResizableHybridPlugin extends Plugin
 	private void repositionMinimapWidgets()
 	{
 		//log.debug("repositionMinimapWidgets()");
-		Widget minimapWidget = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_MINIMAP);
-		Widget minimapSprite = client.getWidget(classicResizableGroupId, 32);
-		Widget minimapWidgetOrbsParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_MINIMAP_ORB_HOLDER);
-		Widget minimapWidgetOrbsInterface = client.getWidget(ComponentID.MINIMAP_CONTAINER);
+		Widget minimapWidget = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAP_CONTAINER);
+		Widget minimapSprite = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAP_MINIMAP_GRAPHIC9);
+		Widget minimapWidgetOrbsParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.ORBS);
+		Widget minimapWidgetOrbsInterface = client.getWidget(InterfaceID.Orbs.UNIVERSE);
 		if (getGameClientLayout() == 2 &&
 			minimapWidget != null &&
 			minimapSprite != null &&
@@ -1016,8 +1015,8 @@ public class FixedResizableHybridPlugin extends Plugin
 				int newX = widgetAdjustment[1];
 				int newY = widgetAdjustment[2];
 				Widget wdgToAdj = (widgetAdjustment[0] == 30)
-					? client.getWidget(ComponentID.RESIZABLE_VIEWPORT_MINIMAP_DRAW_AREA)
-					: client.getWidget(classicResizableGroupId, childId);
+					? client.getWidget(InterfaceID.ToplevelOsrsStretch.MINIMAP)
+					: client.getWidget(161, childId);
 				if (wdgToAdj != null && wdgToAdj.getXPositionMode() == 2)
 				{
 					saveWidgetState(wdgToAdj, true);
@@ -1031,21 +1030,21 @@ public class FixedResizableHybridPlugin extends Plugin
 			}
 			if (config.orbsPosition() == OrbsPosition.FIXED_MODE)
 			{
-				setWidgetCoordinates(ComponentID.MINIMAP_RUN_ORB, 10, 97);
-				setWidgetCoordinates(ComponentID.MINIMAP_SPEC_ORB, 32, 122);
+				setWidgetCoordinates(InterfaceID.Orbs.ORB_RUNENERGY, 10, 97);
+				setWidgetCoordinates(InterfaceID.Orbs.ORB_SPECENERGY, 32, 122);
 			}
 			else if (config.orbsPosition() == OrbsPosition.MORE_CLEARANCE)
 			{
-				setWidgetCoordinates(ComponentID.MINIMAP_RUN_ORB, 2, 97);
-				setWidgetCoordinates(ComponentID.MINIMAP_SPEC_ORB, 23, 124);
+				setWidgetCoordinates(InterfaceID.Orbs.ORB_RUNENERGY, 2, 97);
+				setWidgetCoordinates(InterfaceID.Orbs.ORB_SPECENERGY, 23, 124);
 			}
 
-			setWidgetCoordinates(ComponentID.MINIMAP_XP_ORB, 0, 11);
-			setWidgetCoordinates(ComponentID.MINIMAP_HEALTH_ORB, 0, 31);
-			setWidgetCoordinates(ComponentID.MINIMAP_PRAYER_ORB, 0, 65);
+			setWidgetCoordinates(InterfaceID.Orbs.XP_DROPS, 0, 11);
+			setWidgetCoordinates(InterfaceID.Orbs.ORB_HEALTH, 0, 31);
+			setWidgetCoordinates(InterfaceID.Orbs.ORB_PRAYER, 0, 65);
 			//compass widgets
-			setWidgetCoordinates(client.getWidget(classicResizableGroupId, 31), 26, 1);
-			setWidgetCoordinates(client.getWidget(classicResizableGroupId, 29), 28, 3);
+			setWidgetCoordinates(client.getWidget(InterfaceID.ToplevelOsrsStretch.COMPASSCLICK), 26, 1);
+			setWidgetCoordinates(client.getWidget(InterfaceID.ToplevelOsrsStretch.MAP_MINIMAP_GRAPHIC6), 28, 3);
 
 			fixWorldMapWikiStoreActAdvOrbs();
 			minimapWidget.revalidateScroll();
@@ -1059,7 +1058,7 @@ public class FixedResizableHybridPlugin extends Plugin
 			return;
 		}
 
-		Widget minimapSpriteContainer = client.getWidget(classicResizableGroupId, 22);
+		Widget minimapSpriteContainer = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAP_MINIMAP);
 		if (minimapSpriteContainer == null)
 		{
 			return;
@@ -1076,8 +1075,8 @@ public class FixedResizableHybridPlugin extends Plugin
 	{
 		//log.debug("createFixedSprites()");
 		// Get the parent widget the sprites should be under
-		Widget minimapDrawArea = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_MINIMAP_DRAW_AREA);
-		Widget inventoryParentWidget = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_INVENTORY_PARENT);
+		Widget minimapDrawArea = client.getWidget(InterfaceID.ToplevelOsrsStretch.MINIMAP);
+		Widget inventoryParentWidget = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU);
 		// Define the configurations for all the sprites to be created.
 		// Each row represents a sprite with the following columns:
 		// [widget, type, spriteId, originalX, originalY, originalWidth, originalHeight, xPositionMode, yPositionMode, widthMode, heightMode, noclickthrough]
@@ -1158,7 +1157,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private void inventoryWidgetBoundsFix()
 	{
 		//log.debug("inventoryWidgetBoundsFix()");
-		Widget invParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_INVENTORY_PARENT);
+		Widget invParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU);
 		if (invParent != null)
 		{
 			saveWidgetState(invParent, true);
@@ -1167,7 +1166,7 @@ public class FixedResizableHybridPlugin extends Plugin
 			invParent.revalidate();
 		}
 
-		Widget invBackground = client.getWidget(classicResizableGroupId, 38);
+		Widget invBackground = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_BACKGROUND);
 		if (invBackground != null)
 		{
 			saveWidgetState(invBackground);
@@ -1179,14 +1178,14 @@ public class FixedResizableHybridPlugin extends Plugin
 			invBackground.revalidate();
 		}
 
-		Widget invLeftColumn = client.getWidget(classicResizableGroupId, 39);
+		Widget invLeftColumn = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU_GRAPHIC1);
 		if (invLeftColumn != null)
 		{
 			saveWidgetState(invLeftColumn);
 			invLeftColumn.setHidden(true);
 			invLeftColumn.revalidate();
 		}
-		Widget invRightColumn = client.getWidget(classicResizableGroupId, 40);
+		Widget invRightColumn = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU_GRAPHIC2);
 		if (invRightColumn != null)
 		{
 			saveWidgetState(invRightColumn);
@@ -1194,7 +1193,7 @@ public class FixedResizableHybridPlugin extends Plugin
 			invRightColumn.revalidate();
 		}
 
-		Widget invBottomBarSprite = client.getWidget(classicResizableGroupId, 41);
+		Widget invBottomBarSprite = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU_GRAPHIC3);
 		if (invBottomBarSprite != null)
 		{
 			saveWidgetState(invBottomBarSprite);
@@ -1204,7 +1203,7 @@ public class FixedResizableHybridPlugin extends Plugin
 			invBottomBarSprite.revalidate();
 		}
 
-		Widget invBottomTabsParent = client.getWidget(classicResizableGroupId, 42);
+		Widget invBottomTabsParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_BOTTOM);
 		if (invBottomTabsParent != null)
 		{
 			saveWidgetState(invBottomTabsParent, true);
@@ -1212,7 +1211,7 @@ public class FixedResizableHybridPlugin extends Plugin
 			invBottomTabsParent.revalidate();
 		}
 
-		Widget invTopBarSprite = client.getWidget(classicResizableGroupId, 57);
+		Widget invTopBarSprite = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU_GRAPHIC5);
 		if (invTopBarSprite != null)
 		{
 			saveWidgetState(invTopBarSprite);
@@ -1223,7 +1222,7 @@ public class FixedResizableHybridPlugin extends Plugin
 			invTopBarSprite.revalidate();
 		}
 
-		Widget invTopTabsParent = client.getWidget(classicResizableGroupId, 58);
+		Widget invTopTabsParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_TOP);
 		if (invTopTabsParent != null)
 		{
 			saveWidgetState(invTopTabsParent, true);
@@ -1231,7 +1230,7 @@ public class FixedResizableHybridPlugin extends Plugin
 			invTopTabsParent.revalidate();
 		}
 
-		Widget invViewportInterfaceController = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_INTERFACE_CONTAINER);
+		Widget invViewportInterfaceController = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_CONTAINER);
 		if (invViewportInterfaceController != null)
 		{
 			saveWidgetState(invViewportInterfaceController);
@@ -1245,7 +1244,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private void resizeRenderViewport()
 	{
 		//log.debug("resizeRenderViewport()");
-		Widget mainViewport = client.getWidget(classicResizableGroupId, 91);
+		Widget mainViewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
 		if (mainViewport != null)
 		{
 			// Width is set to the width of the inventory and minimap widgets because widthMode = 1 (subtracts
@@ -1265,7 +1264,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private void resetRenderViewport()
 	{
 		//log.debug("resetRenderViewport()");
-		Widget mainViewport = client.getWidget(classicResizableGroupId, 91);
+		Widget mainViewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
 		if (mainViewport != null)
 		{
 			clientThread.invoke(() -> {
@@ -1285,9 +1284,9 @@ public class FixedResizableHybridPlugin extends Plugin
 			return;
 		}
 
-		Widget mainViewport = client.getWidget(classicResizableGroupId, 91);
-		Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
-		Widget chatboxParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_CHATBOX_PARENT);
+		Widget mainViewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
+		Widget chatboxFrame = client.getWidget(InterfaceID.Chatbox.CHATAREA);
+		Widget chatboxParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.CHAT_CONTAINER);
 		if (mainViewport == null || chatboxFrame == null || chatboxParent == null)
 		{
 			return;
@@ -1298,7 +1297,7 @@ public class FixedResizableHybridPlugin extends Plugin
 		mainViewport.setYPositionMode(0);
 		mainViewport.revalidateScroll();
 
-		Widget chatboxBackgroundParent = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
+		Widget chatboxBackgroundParent = client.getWidget(InterfaceID.Chatbox.CHAT_BACKGROUND);
 		if (chatboxBackgroundParent != null)
 		{
 			int childrenCount = chatboxBackgroundParent.getDynamicChildren().length;
@@ -1325,13 +1324,13 @@ public class FixedResizableHybridPlugin extends Plugin
 		{
 			return;
 		}
-		Widget canvas = client.getWidget(classicResizableGroupId, 0);
+		Widget canvas = client.getWidget(InterfaceID.ToplevelOsrsStretch.CONTROL);
 		if (canvas == null)
 		{
 			return;
 		}
 		int wideChatboxWidth = canvas.getWidth() - 249;
-		Widget chatParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_CHATBOX_PARENT);//161.96
+		Widget chatParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.CHAT_CONTAINER);//161.96
 		if (chatParent != null)
 		{
 			saveWidgetState(chatParent);
@@ -1340,14 +1339,14 @@ public class FixedResizableHybridPlugin extends Plugin
 			chatParent.setXPositionMode(0);
 			chatParent.revalidateScroll();
 		}
-		Widget chatFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
+		Widget chatFrame = client.getWidget(InterfaceID.Chatbox.CHATAREA);
 		if (chatFrame != null)
 		{
 			saveWidgetState(chatFrame);
 			chatFrame.setOriginalWidth(wideChatboxWidth);
 			chatFrame.revalidateScroll();
 		}
-		Widget dialogueOptions = client.getWidget(ComponentID.DIALOG_OPTION_OPTIONS);
+		Widget dialogueOptions = client.getWidget(InterfaceID.Chatmenu.OPTIONS);
 		if (dialogueOptions != null)
 		{
 			saveWidgetState(dialogueOptions);
@@ -1378,7 +1377,7 @@ public class FixedResizableHybridPlugin extends Plugin
 
 	private void positionChatboxButtons()
 	{
-		Widget chatButtonsParent = client.getWidget(ComponentID.CHATBOX_BUTTONS);
+		Widget chatButtonsParent = client.getWidget(InterfaceID.Chatbox.CONTROLS);
 		if (chatButtonsParent == null)
 		{
 			return;
@@ -1388,7 +1387,7 @@ public class FixedResizableHybridPlugin extends Plugin
 		chatButtonsParent.setWidthMode(WidgetSizeMode.MINUS);
 		chatButtonsParent.revalidateScroll();
 		//Fix for chatbuttons disappearing during cutscene and causing render bugs
-		Widget chatParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_CHATBOX_PARENT);
+		Widget chatParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.CHAT_CONTAINER);
 		if (cutSceneActive
 			&& chatButtonsParent.isSelfHidden()
 			&& chatParent != null
@@ -1512,10 +1511,10 @@ public class FixedResizableHybridPlugin extends Plugin
 		}
 
 		// Retrieve required widgets.
-		Widget canvas = client.getWidget(classicResizableGroupId, 0); // Provides the viewport width.
-		Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
-		Widget chatboxButtons = client.getWidget(ComponentID.CHATBOX_BUTTONS);
-		Widget chatboxBackgroundParent = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
+		Widget canvas = client.getWidget(InterfaceID.ToplevelOsrsStretch.CONTROL); // Provides the viewport width.
+		Widget chatboxFrame = client.getWidget(InterfaceID.Chatbox.CHATAREA);
+		Widget chatboxButtons = client.getWidget(InterfaceID.Chatbox.CONTROLS);
+		Widget chatboxBackgroundParent = client.getWidget(InterfaceID.Chatbox.CHAT_BACKGROUND);
 
 		// Ensure all widgets exist.
 		if (canvas == null || chatboxFrame == null || chatboxButtons == null || chatboxBackgroundParent == null)
@@ -1583,7 +1582,7 @@ public class FixedResizableHybridPlugin extends Plugin
 
 	private boolean isChatboxOpen()
 	{
-		Widget chatboxFrame = client.getWidget(ComponentID.CHATBOX_FRAME);
+		Widget chatboxFrame = client.getWidget(InterfaceID.Chatbox.CHATAREA);
 		if (chatboxFrame == null)
 		{
 			return false;
@@ -1591,7 +1590,7 @@ public class FixedResizableHybridPlugin extends Plugin
 
 		if (cutSceneActive)
 		{
-			Widget chatboxTransparentBackground = client.getWidget(ComponentID.CHATBOX_TRANSPARENT_BACKGROUND);
+			Widget chatboxTransparentBackground = client.getWidget(InterfaceID.Chatbox.CHAT_BACKGROUND);
 			return chatboxTransparentBackground != null
 				&& chatboxTransparentBackground.getDynamicChildren().length > 0
 				&& !chatboxFrame.isHidden();

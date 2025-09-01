@@ -7,7 +7,7 @@ import javax.inject.Inject;
 
 import com.lapask.config.BackgroundMode;
 import net.runelite.api.Client;
-import net.runelite.api.widgets.ComponentID;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -79,7 +79,7 @@ public class FixedResizableHybridOverlay extends Overlay
 		if (config.useGapBorders())
 		{
 			// Inventory gap border
-			Widget inventoryParent = client.getWidget(ComponentID.RESIZABLE_VIEWPORT_INVENTORY_PARENT);
+			Widget inventoryParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU);
 			if (inventoryParent != null)
 			{
 				int imageX = inventoryParent.getCanvasLocation().getX();
@@ -88,7 +88,7 @@ public class FixedResizableHybridOverlay extends Overlay
 			}
 
 			// Minimap gap border
-			Widget minimapContainer = client.getWidget(ComponentID.MINIMAP_CONTAINER);
+			Widget minimapContainer = client.getWidget(InterfaceID.Orbs.UNIVERSE);
 			if (minimapContainer != null)
 			{
 				int imageX = minimapContainer.getCanvasLocation().getX();
