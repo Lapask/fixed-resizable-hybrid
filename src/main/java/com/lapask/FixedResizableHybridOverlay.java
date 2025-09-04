@@ -23,7 +23,8 @@ public class FixedResizableHybridOverlay extends Overlay
 
 	private static final Image GAP_BORDER =
 		ImageUtil.loadImageResource(FixedResizableHybridPlugin.class, "/border15px.png");
-
+	private static final Image TRANSPARENCY_WARNING =
+		ImageUtil.loadImageResource(FixedResizableHybridPlugin.class, "/transparencyWarning.png");
 	private static final BufferedImage TILABLE_BACKGROUND =
 		ImageUtil.loadImageResource(FixedResizableHybridPlugin.class, "/tilable_background.png");
 
@@ -32,9 +33,8 @@ public class FixedResizableHybridOverlay extends Overlay
 	{
 		this.client = client;
 		this.config = config;
-
 		setPosition(OverlayPosition.DYNAMIC);
-		setLayer(OverlayLayer.UNDER_WIDGETS);
+		setLayer(OverlayLayer.UNDER_WIDGETS); // above background, below widgets
 	}
 
 	@Override
@@ -45,28 +45,20 @@ public class FixedResizableHybridOverlay extends Overlay
 		int clientHeight = (int) clientDimensions.getHeight();
 		Rectangle overlayBounds = new Rectangle(clientWidth - OVERLAY_WIDTH, 0, OVERLAY_WIDTH, clientHeight);
 
-		// 1) Background: solid or tiled, clipped to overlayBounds
-		BackgroundMode mode = config.backgroundMode();
-		if (mode == BackgroundMode.TILED_STONE && TILABLE_BACKGROUND != null)
+		// 1) Background
+		if (config.backgroundMode() == BackgroundMode.TILED_STONE && TILABLE_BACKGROUND != null)
 		{
-			// Clip so nothing can paint outside the 249px right column
 			Shape oldClip = graphics.getClip();
 			graphics.setClip(overlayBounds);
-
-			// Anchor the tile to the overlay's top-left so one full 249px column is shown
+			Paint oldPaint = graphics.getPaint();
 			TexturePaint paint = new TexturePaint(
 				TILABLE_BACKGROUND,
 				new Rectangle2D.Double(
 					overlayBounds.x, overlayBounds.y,
-					TILABLE_BACKGROUND.getWidth(), TILABLE_BACKGROUND.getHeight()
-				)
-			);
-			Paint oldPaint = graphics.getPaint();
+					TILABLE_BACKGROUND.getWidth(), TILABLE_BACKGROUND.getHeight()));
 			graphics.setPaint(paint);
 			graphics.fillRect(overlayBounds.x, overlayBounds.y, overlayBounds.width, overlayBounds.height);
 			graphics.setPaint(oldPaint);
-
-			// Restore clip
 			graphics.setClip(oldClip);
 		}
 		else
@@ -75,37 +67,72 @@ public class FixedResizableHybridOverlay extends Overlay
 			graphics.fill(overlayBounds);
 		}
 
-		// 2) Borders: draw images (no per-border tint; global tint will apply below)
+		// 2) Borders and inventory warning
 		if (config.useGapBorders())
 		{
-			// Inventory gap border
-			Widget inventoryParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU);
-			if (inventoryParent != null)
+			// Inventory gap
+			Widget inventoryWidget = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU);
+			if (inventoryWidget != null)
 			{
-				int imageX = inventoryParent.getCanvasLocation().getX();
-				int imageY = inventoryParent.getCanvasLocation().getY() - 15;
-				graphics.drawImage(GAP_BORDER, imageX, imageY, null);
+				int borderX = inventoryWidget.getCanvasLocation().getX();
+				int borderY = inventoryWidget.getCanvasLocation().getY() - 15;
+				graphics.drawImage(GAP_BORDER, borderX, borderY, null);
+
+				// Transparency warning overlay for inventory
+				if (config.invBackgroundWarning() && TRANSPARENCY_WARNING != null && !inventoryWidget.isHidden())
+				{
+					int invX = inventoryWidget.getCanvasLocation().getX();
+					int invY = inventoryWidget.getCanvasLocation().getY();
+					int invWidth = inventoryWidget.getWidth();
+					int invHeight = inventoryWidget.getHeight();
+
+					Rectangle inventoryBounds = new Rectangle(invX, invY, invWidth, invHeight);
+					Rectangle paintBounds = inventoryBounds.intersection(overlayBounds);
+
+					if (!paintBounds.isEmpty())
+					{
+						Shape oldClip = graphics.getClip();
+						graphics.setClip(paintBounds);
+
+						if (TRANSPARENCY_WARNING.getWidth(null) == invWidth &&
+							TRANSPARENCY_WARNING.getHeight(null) == invHeight)
+						{
+							graphics.drawImage(TRANSPARENCY_WARNING, invX, invY, null);
+						}
+						else
+						{
+							graphics.drawImage(
+								TRANSPARENCY_WARNING,
+								invX, invY, invX + invWidth, invY + invHeight,
+								0, 0,
+								TRANSPARENCY_WARNING.getWidth(null), TRANSPARENCY_WARNING.getHeight(null),
+								null
+							);
+						}
+						graphics.setClip(oldClip);
+					}
+				}
 			}
 
 			// Minimap gap border
-			Widget minimapContainer = client.getWidget(InterfaceID.Orbs.UNIVERSE);
-			if (minimapContainer != null)
+			Widget minimapWidget = client.getWidget(InterfaceID.Orbs.UNIVERSE);
+			if (minimapWidget != null)
 			{
-				int imageX = minimapContainer.getCanvasLocation().getX();
-				int imageY = minimapContainer.getCanvasLocation().getY() + 158;
-				graphics.drawImage(GAP_BORDER, imageX, imageY, null);
+				int borderX = minimapWidget.getCanvasLocation().getX();
+				int borderY = minimapWidget.getCanvasLocation().getY() + 158;
+				graphics.drawImage(GAP_BORDER, borderX, borderY, null);
 			}
 		}
 
-		// 3) Single global tint over everything in the overlay column
-		Color tint = config.gapBackgroundTint(); // one tint source for background + borders
+		// 3) Global tint over the column
+		Color tint = config.gapBackgroundTint();
 		if (tint.getAlpha() > 0)
 		{
-			Composite old = graphics.getComposite();
+			Composite oldComposite = graphics.getComposite();
 			graphics.setComposite(AlphaComposite.SrcAtop);
 			graphics.setColor(tint);
 			graphics.fillRect(overlayBounds.x, overlayBounds.y, overlayBounds.width, overlayBounds.height);
-			graphics.setComposite(old);
+			graphics.setComposite(oldComposite);
 		}
 
 		return overlayBounds.getSize();

@@ -30,12 +30,12 @@ public interface FixedResizableHybridConfig extends Config
 	String minimapSettings = "minimapSettings";
 
 	@ConfigSection(
-		name = "Inventory Minimap Gap",
-		description = "Gap settings",
+		name = "Inv/Minimap Background",
+		description = "Settings for the background along the right side of the screen",
 		position = 2,
 		closedByDefault = true
 	)
-	String gapSettings = "gapSettings";
+	String gapBackgroundSettings = "gapSettings";
 
 	@ConfigSection(
 			name = "Window Resizing",
@@ -113,7 +113,7 @@ public interface FixedResizableHybridConfig extends Config
 		name = "Gap Borders",
 		description = "For atypical aspect ratios or users who don't use stretched mode, this adds borders to the gap between the inventory and minimap.",
 		position = 1,
-		section = gapSettings
+		section = gapBackgroundSettings
 	)
 	default boolean useGapBorders()
 	{
@@ -125,7 +125,7 @@ public interface FixedResizableHybridConfig extends Config
 		name = "Background Mode",
 		description = "Choose solid color or tiled stone for the gap background.",
 		position = 0, // adjust ordering within gapSettings as you like
-		section = gapSettings
+		section = gapBackgroundSettings
 	)
 	default BackgroundMode backgroundMode()
 	{
@@ -137,25 +137,36 @@ public interface FixedResizableHybridConfig extends Config
 		name = "Background Color",
 		description = "Color used for the gap between the inventory and minimap.",
 		position = 2,
-		section = gapSettings
+		section = gapBackgroundSettings
 	)
 	default Color backgroundColor()
 	{
 		return new Color(47, 42, 32);
 	}
 
-@ConfigItem(
-	keyName = "gapBackgroundTint",
-	name = "Gap / Background Tint",
-	description = "Color tint applied on top of the gap border and background (supports transparency).",
-	position = 3,
-	section = gapSettings
-)	
+	@ConfigItem(
+		keyName = "gapBackgroundTint",
+		name = "Gap / Background Tint",
+		description = "Color tint applied on top of the gap border and background (supports transparency).",
+		position = 3,
+		section = gapBackgroundSettings
+	)
 	@Alpha
 	default Color gapBackgroundTint()
 	{
 		// Default: transparent
 		return new Color(255, 255, 255, 0);
+	}
+	@ConfigItem(
+		keyName = "invBackgroundWarning",
+		name = "Transparency Warning",
+		description = "Controls side panel transparency warning",
+		position = 4,
+		section = gapBackgroundSettings
+	)
+	default boolean invBackgroundWarning()
+	{
+		return true;
 	}
 
 	@ConfigItem(
