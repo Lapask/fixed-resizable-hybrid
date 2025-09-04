@@ -14,6 +14,7 @@ import net.runelite.api.SpriteID;
 import net.runelite.api.SpritePixels;
 import net.runelite.api.Varbits;
 import net.runelite.api.events.BeforeRender;
+import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.events.VarbitChanged;
@@ -209,7 +210,7 @@ public class FixedResizableHybridPlugin extends Plugin
 		switch (scriptId)
 		{
 			case 909: // Interface boxes recalculated (e.g., bank inventory, settings panel, etc)
-				//log.debug("script 909: fixInterfaceDimensions()");
+				log.debug("script 909: fixInterfaceDimensions()");
 				fixInterfaceDimensions();
 				break;
 			case 654: // Stats guide widget opened (osb>214.0>214.1)
@@ -218,21 +219,21 @@ public class FixedResizableHybridPlugin extends Plugin
 			case 904: // Window resized
 				if (widgetsModified && config.isWideChatbox() && getGameClientLayout() == 2)
 				{
-					//log.debug("script 904: widenChat() for window resize");
+					log.debug("script 904: widenChat() for window resize");
 					chatboxChanged();
 					widenChat();
 				}
 				break;
 			case 1699: // Right-aligned minimap orbs repositioned
 			case 3305:
-				//log.debug("script 1699/3305: fixWorldMapWikiStoreActAdvOrbs()");
+				log.debug("script 1699/3305: fixWorldMapWikiStoreActAdvOrbs()");
 				fixWorldMapWikiStoreActAdvOrbs();
 				fixInterfaceDimensions();
 				repositionMinimapWidgets();
 				break;
 			case 902: // Inventory background changed, revert it back to its old sprite and unhide inv if in cutscene
 				// Also fail-safe for loading sprites
-				//log.debug("script 902: fixInvBackground(), checkMinimapSprites(), unhide invWidget during cutscene");
+				log.debug("script 902: fixInvBackground(), checkMinimapSprites(), unhide invWidget during cutscene");
 				checkMinimapSprites();
 				fixInvBackground();
 				if (cutSceneActive)
@@ -245,7 +246,7 @@ public class FixedResizableHybridPlugin extends Plugin
 				}
 				break;
 			case 901: // Game Interface Mode changes
-				//log.debug("script 901: gameClientLayoutChanged()");
+				log.debug("script 901: gameClientLayoutChanged()");
 				gameClientLayoutChanged();
 				break;
 			case 175:
@@ -255,7 +256,7 @@ public class FixedResizableHybridPlugin extends Plugin
 				// Chatbox opens/closes
 				if (config.isWideChatbox())
 				{
-					//log.debug("script {}, chatboxChanged() and widenChat()",scriptId,tickCount);
+					log.debug("script 175/178/messagelayeropen/close, chatboxChanged() and widenChat()");
 					chatboxChanged();
 					widenChat();
 					if (widgetWithBackgroundLoaded)
@@ -353,7 +354,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	// For some reason you can't use invoke() here or else it will delete the minimap orbs when you change interface mode.
 	private void queuePluginInitialization()
 	{
-		//log.debug("queuePluginInitialization()");
+		log.debug("queuePluginInitialization()");
 		//invokeLater will keep running until it returns true
 		clientThread.invokeLater(() ->
 		{
@@ -376,7 +377,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	// Also resizes 16:9 if config option is true.
 	private void initializePlugin()
 	{
-		//log.debug("initializePlugin()");
+		log.debug("initializePlugin()");
 		widgetsModified = true;
 		resizeRenderViewport();
 		resizeByAspectRatio();
@@ -530,7 +531,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	// Handles changes in the game client layout and triggers appropriate actions.
 	//
 	// This function is called after `onScriptPostFired()` for `scriptId == 901`.
-	// It offers two key benefits over using `onGameStateChange()` or `client.isResizable()`:
+	// It offers two benefits over using `onGameStateChange()` or `client.isResizable()`:
 	// 1. Prevents premature initialization by ensuring widgets are fully drawn, as
 	//    `getGameClientLayout()` will return -1 if called too early.
 	// 2. Provides a more specific response based on the interface layout, unlike the
@@ -541,7 +542,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	// interference caused by switching layouts.
 	private void gameClientLayoutChanged()
 	{
-		//log.debug("gameClientLayoutChanged()");
+		log.debug("gameClientLayoutChanged(), {}",getGameClientLayout());
 		if (getGameClientLayout() == 2)
 		{
 			queuePluginInitialization();
@@ -552,6 +553,14 @@ public class FixedResizableHybridPlugin extends Plugin
 		}
 	}
 
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged gameStateChanged)
+	{
+		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
+		{
+			gameClientLayoutChanged();
+		}
+	}
 
 	// Adjusts the positions of the World Map, Wiki, Store, and Activity Adviser orbs to match fixed mode alignment.
 	//
@@ -1071,6 +1080,7 @@ public class FixedResizableHybridPlugin extends Plugin
 		Widget minimapSpriteContainer = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAP_MINIMAP);
 		if (minimapSpriteContainer == null)
 		{
+			log.debug("checkMinimapSprites(): FRH minimap sprite container null");
 			return;
 		}
 
@@ -1082,6 +1092,7 @@ public class FixedResizableHybridPlugin extends Plugin
 
 	private void createMinimapInvSprites()
 	{
+		log.debug("createMinimapInvSprites()");
 		final Widget minimapParent   = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAP_MINIMAP);
 		final Widget inventoryParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.SIDE_MENU);
 		if (minimapParent == null || inventoryParent == null) return;
