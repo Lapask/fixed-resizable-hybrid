@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.Provides;
 import com.lapask.config.OrbsPosition;
 import com.lapask.config.ResizeBy;
-import com.lapask.dev.InterfaceIdMapper;
 import java.awt.image.BufferedImage;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -108,7 +107,6 @@ public class FixedResizableHybridPlugin extends Plugin
 	protected void startUp() throws Exception
 	{
 		log.info("Fixed Hybrid Plugin started!");
-		InterfaceIdMapper.logMyPluginComponentMappings();
 		if (client.getGameState() == GameState.LOGGED_IN)
 		{
 			queuePluginInitialization();
