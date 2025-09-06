@@ -25,6 +25,7 @@ import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
 import net.runelite.api.widgets.WidgetSizeMode;
 import net.runelite.api.widgets.WidgetType;
+import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -79,7 +80,9 @@ public class FixedResizableHybridPlugin extends Plugin
 		398, // Fairy ring
 		416,  // Canoe interface (choose canoe)
 		647,  // Canoe interface (choose destination)
-		224   // Boat travelling (e.g., to Neitiznot)
+		224,   // Boat travelling (e.g., to Neitiznot)
+		469, // balloon
+		299 //port sarim boat
 	);
 
 	//CreateNewWidget Column Headers
@@ -149,6 +152,9 @@ public class FixedResizableHybridPlugin extends Plugin
 					case 398: // Fairy Ring
 					case 416:
 					case 647:
+					case 224: // Boat travelling (e.g., to Neitiznot)
+					case 469: // balloon
+					case 299: // port sarim boat
 						fixWidgetBackground();
 						break;
 					default:
@@ -224,7 +230,7 @@ public class FixedResizableHybridPlugin extends Plugin
 					widenChat();
 				}
 				break;
-			case 1699: // Right-aligned minimap orbs repositioned
+			case 1699: // [clientscript,orbs_worldmap_setup]: Right-aligned minimap orbs repositioned
 			case 3305:
 				//log.debug("script 1699/3305: fixWorldMapWikiStoreActAdvOrbs()");
 				fixWorldMapWikiStoreActAdvOrbs();
