@@ -383,6 +383,9 @@ public class FixedResizableHybridPlugin extends Plugin
 	// Also resizes 16:9 if config option is true.
 	private void initializePlugin()
 	{
+		//Remove old widgets to prevent accumulation of duplicate widgets
+		removeAddedWidgets();
+
 		//log.debug("initializePlugin()");
 		widgetsModified = true;
 		resizeRenderViewport();
