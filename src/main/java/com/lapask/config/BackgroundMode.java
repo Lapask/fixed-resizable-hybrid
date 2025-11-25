@@ -6,7 +6,8 @@ import lombok.Getter;
 public enum BackgroundMode
 {
 	SOLID_COLOR("Solid Color"),
-	TILED_STONE("Tiled Stone");
+	TILED_STONE("Tiled Stone"),
+	TILED_CUSTOM_IMAGE("Tiled Custom Image");
 
 	private final String displayName;
 

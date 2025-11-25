@@ -123,13 +123,27 @@ public interface FixedResizableHybridConfig extends Config
 	@ConfigItem(
 		keyName = "backgroundMode",
 		name = "Background Mode",
-		description = "Choose solid color or tiled stone for the gap background.",
+		description = "Choose solid color, tiled stone, or a tiled custom image for the gap background.",
 		position = 0, // adjust ordering within gapSettings as you like
 		section = gapBackgroundSettings
 	)
 	default BackgroundMode backgroundMode()
 	{
 		return BackgroundMode.TILED_STONE;
+	}
+
+	@ConfigItem(
+			keyName = "customImagePath",
+			name = "Custom Background Image Path",
+			description = "Absolute file path for the custom gap background image.<br>"
+				+"\"Tiled Custom Image\" must be selected above<br>"
+				+"See readme for more detailed instructions",
+			position = 1,
+			section = gapBackgroundSettings
+	)
+	default String customImagePath()
+	{
+		return "";
 	}
 
 	@ConfigItem(

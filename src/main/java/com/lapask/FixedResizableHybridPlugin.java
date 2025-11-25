@@ -71,6 +71,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private final HashMap<Integer, WidgetState> originalStates = new HashMap<>();
 	private boolean widgetWithBackgroundLoaded = false;
 	private static final Set<String> onConfigChangedTriggerPlugins = Set.of("fixedresizablehybrid", "interfaceStyles", "runelite", "resourcepacks");
+	private final BufferedImage TILABLE_BACKGROUND_IMAGE = ImageUtil.loadImageResource(getClass(), "/tilable_background.png");
 	private final BufferedImage defaultChatboxBufferedImage = ImageUtil.loadImageResource(getClass(), "/chatbox.png");
 	private boolean cutSceneActive = false;
 	private boolean transparentChatbox = false;
@@ -182,6 +183,12 @@ public class FixedResizableHybridPlugin extends Plugin
 		}
 		if ("fixedresizablehybrid".equals(group))
 		{
+			if ("customImagePath".equals(key))
+			{
+				enabledOverlays.updateCustomImage(config.customImagePath());
+				return;
+			}
+
 			clientThread.invoke(() ->
 			{
 				if ("aspectRatioResize".equals(key) && config.aspectRatioResize())
