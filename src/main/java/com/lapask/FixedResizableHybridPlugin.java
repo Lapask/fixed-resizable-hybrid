@@ -21,7 +21,6 @@ import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetClosed;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
-import net.runelite.api.widgets.ComponentID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetPositionMode;
 import net.runelite.api.widgets.WidgetSizeMode;
@@ -36,12 +35,8 @@ import net.runelite.client.plugins.PluginDescriptor;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
-import java.util.Map;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
-
-import static com.lapask.BankExpandConstants.*;
-
 
 
 @Slf4j
@@ -141,9 +136,6 @@ public class FixedResizableHybridPlugin extends Plugin
 		}
 		//Needs to occur every frame to ensure interface dimensions are set
 		fixIngameOverlayWidgets();
-
-		// Expand bank and other containers when chat is hidden
-		expandContainersWhenChatHidden();
 
 		//widgetsToFixBeforeRender contains the list of ids need to be processed (see specific UI groups in onWidget(Un)load)
 		//prevents widget/UI flickers when widgets are loaded and resized/centered to the viewport
@@ -1613,92 +1605,5 @@ public class FixedResizableHybridPlugin extends Plugin
 				&& !chatboxFrame.isHidden();
 		}
 		return !chatboxFrame.isHidden();
-	}
-
-	private void expandContainersWhenChatHidden()
-	{
-		if (!config.expandBankWhenChatHidden() || getGameClientLayout() != 2)
-		{
-			return;
-		}
-
-		// Check if chat is hidden
-		boolean chatHidden = !isChatboxOpen();
-		if (!chatHidden)
-		{
-			return;
-		}
-
-		// Get the viewport and chatbox parent to calculate available space
-		Widget viewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
-		Widget chatboxParent = client.getWidget(InterfaceID.ToplevelOsrsStretch.CHAT_CONTAINER);
-		
-		if (viewport == null || chatboxParent == null)
-		{
-			return;
-		}
-
-		// Calculate the additional height available when chat is hidden
-		// The chatbox parent Y position tells us where the chat would start
-		int additionalHeight = chatboxParent.getOriginalY();
-		if (additionalHeight <= 0)
-		{
-			return;
-		}
-
-		// Expand each container
-		for (Map.Entry<Integer, Integer> containerEntry : EXPANDABLE_CONTAINERS)
-		{
-			Widget container = containerEntry.getValue() == 0 
-				? client.getWidget(containerEntry.getKey()) 
-				: client.getWidget(containerEntry.getKey(), containerEntry.getValue());
-			
-			if (container != null && !container.isSelfHidden())
-			{
-				// Store original height if not already stored
-				int containerId = container.getId();
-				if (!originalStates.containsKey(containerId))
-				{
-					saveWidgetState(container);
-				}
-
-				// Expand the container to fill the viewport
-				int currentHeight = container.getOriginalHeight();
-				int newHeight = currentHeight + additionalHeight;
-				
-				container.setOriginalHeight(newHeight);
-				container.setHeightMode(WidgetSizeMode.ABSOLUTE);
-				container.revalidateScroll();
-
-				// Also expand nested children that need it
-				expandContainerChildren(container, additionalHeight);
-			}
-		}
-	}
-
-	private void expandContainerChildren(Widget parent, int additionalHeight)
-	{
-		Widget[] children = parent.getNestedChildren();
-		if (children == null)
-		{
-			return;
-		}
-
-		for (Widget child : children)
-		{
-			// Expand children that are using viewport-relative heights
-			if (child.getHeightMode() == WidgetSizeMode.MINUS)
-			{
-				int childId = child.getId();
-				if (!originalStates.containsKey(childId))
-				{
-					saveWidgetState(child);
-				}
-				
-				int currentHeight = child.getOriginalHeight();
-				child.setOriginalHeight(currentHeight - additionalHeight);
-				child.revalidateScroll();
-			}
-		}
 	}
 }
