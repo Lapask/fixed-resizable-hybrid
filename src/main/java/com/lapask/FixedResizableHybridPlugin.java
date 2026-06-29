@@ -76,6 +76,11 @@ public class FixedResizableHybridPlugin extends Plugin
 	private boolean cutSceneActive = false;
 	private boolean transparentChatbox = false;
 	private int wideChatViewportOffset = 23; //height of the buttons at the bottom of the chatbox
+	private boolean bankOpen = false;
+	private boolean bankCurrentlyExpanded = false;
+	private static final int BANK_EXPAND_X = 12;
+	private static final int BANK_EXPAND_Y = 2;
+	private static final int BANK_BOTTOM_GAP = 23 + 2;
 	private List<Integer> widgetsToFixBeforeRender = new ArrayList<Integer>();
 	private static final Set<Integer> WIDGETS_WITH_BACKGROUNDS = Set.of(
 		398, // Fairy ring
@@ -136,6 +141,13 @@ public class FixedResizableHybridPlugin extends Plugin
 		}
 		//Needs to occur every frame to ensure interface dimensions are set
 		fixIngameOverlayWidgets();
+
+		// Reapply bank expansion each frame while the bank is open so it stays correct
+		// as the chat is shown/hidden and on the first frame after opening.
+		if (config.expandBankWhenChatHidden() && bankOpen)
+		{
+			expandBankIfChatHidden();
+		}
 
 		//widgetsToFixBeforeRender contains the list of ids need to be processed (see specific UI groups in onWidget(Un)load)
 		//prevents widget/UI flickers when widgets are loaded and resized/centered to the viewport
@@ -277,6 +289,11 @@ public class FixedResizableHybridPlugin extends Plugin
 						fixWidgetBackground();
 					}
 				}
+				// Re-evaluate bank expansion when the chat is shown/hidden
+				if (widgetsModified && config.expandBankWhenChatHidden() && bankOpen)
+				{
+					expandBankIfChatHidden();
+				}
 				break;
 			case 4731:
 				// TOB widget fix (party orbs flicker if omitted)
@@ -349,6 +366,14 @@ public class FixedResizableHybridPlugin extends Plugin
 			widgetWithBackgroundLoaded = true;
 			widgetsToFixBeforeRender.add(groupID);
 		}
+		if (groupID == InterfaceID.BANKMAIN)
+		{
+			bankOpen = true;
+			if (widgetsModified && config.expandBankWhenChatHidden())
+			{
+				fixInterfaceDimensions();
+			}
+		}
 	}
 
 	@Subscribe
@@ -360,6 +385,14 @@ public class FixedResizableHybridPlugin extends Plugin
 		{
 			//log.debug("onWidgetClosed(): fairy ring closed");
 			widgetWithBackgroundLoaded = false;
+		}
+		if (groupID == InterfaceID.BANKMAIN)
+		{
+			bankOpen = false;
+			if (widgetsModified && config.expandBankWhenChatHidden())
+			{
+				fixInterfaceDimensions();
+			}
 		}
 	}
 
@@ -696,6 +729,125 @@ public class FixedResizableHybridPlugin extends Plugin
 				child.revalidateScroll();
 			}
 		}
+		expandBankIfChatHidden();
+	}
+
+	// Expands the bank to fill the freed space when the chat is hidden
+	private void expandBankIfChatHidden()
+	{
+		// Feature only operates when Wide Chatbox is enabled otherwise it does nothing
+		if (!config.expandBankWhenChatHidden() || !config.isWideChatbox()
+			|| !bankOpen || getGameClientLayout() != 2)
+		{
+			return;
+		}
+
+		Widget oldSchoolBox = client.getWidget(InterfaceID.ToplevelOsrsStretch.HUD_CONTAINER_FRONT);
+		Widget viewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
+		if (oldSchoolBox == null || viewport == null)
+		{
+			return;
+		}
+
+		Widget bankWidget = client.getWidget(InterfaceID.Bankmain.UNIVERSE);
+		boolean bankShown = bankWidget != null && !bankWidget.isSelfHidden();
+		Widget activeWidget = bankShown ? bankWidget : null;
+		if (activeWidget == null)
+		{
+			return;
+		}
+
+		boolean expand = !isChatboxOpen() && !isBankSearchOpen();
+
+		if (expand)
+		{
+			boolean justExpanded = !bankCurrentlyExpanded;
+			bankCurrentlyExpanded = true;
+
+			Widget osbParent = oldSchoolBox.getParent();
+			if (osbParent != null)
+			{
+				if (osbParent.getXPositionMode() == 1 || osbParent.getYPositionMode() == 1)
+				{
+					osbParent.setXPositionMode(0);
+					osbParent.setYPositionMode(0);
+				}
+				if (osbParent.getOriginalWidth() != viewport.getWidth()
+					|| osbParent.getOriginalHeight() != viewport.getHeight())
+				{
+					osbParent.setOriginalWidth(viewport.getWidth());
+					osbParent.setOriginalHeight(viewport.getHeight());
+					osbParent.revalidateScroll();
+				}
+			}
+			if (oldSchoolBox.getOriginalHeight() != wideChatViewportOffset)
+			{
+				oldSchoolBox.setOriginalHeight(wideChatViewportOffset);
+				oldSchoolBox.revalidateScroll();
+			}
+
+			int availableHeight = viewport.getHeight() - BANK_EXPAND_Y - BANK_BOTTOM_GAP;
+			activeWidget.setXPositionMode(WidgetPositionMode.ABSOLUTE_LEFT);
+			activeWidget.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
+			activeWidget.setOriginalX(BANK_EXPAND_X);
+			activeWidget.setOriginalY(BANK_EXPAND_Y);
+			if (activeWidget.getHeightMode() != WidgetSizeMode.ABSOLUTE
+				|| activeWidget.getOriginalHeight() != availableHeight)
+			{
+				activeWidget.setHeightMode(WidgetSizeMode.ABSOLUTE);
+				activeWidget.setOriginalHeight(availableHeight);
+			}
+			activeWidget.revalidateScroll();
+
+			if (justExpanded && bankShown && activeWidget.getOnLoadListener() != null)
+			{
+				final Widget rebuildTarget = activeWidget;
+				clientThread.invokeLater(() ->
+					client.createScriptEventBuilder(rebuildTarget.getOnLoadListener())
+						.setSource(rebuildTarget)
+						.build()
+						.run());
+			}
+		}
+		else
+		{
+			bankCurrentlyExpanded = false;
+			if (activeWidget.getYPositionMode() != WidgetPositionMode.ABSOLUTE_TOP
+				|| activeWidget.getOriginalY() != BANK_EXPAND_Y
+				|| activeWidget.getHeightMode() != WidgetSizeMode.MINUS)
+			{
+				activeWidget.setXPositionMode(WidgetPositionMode.ABSOLUTE_CENTER);
+				activeWidget.setOriginalX(0);
+				activeWidget.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
+				activeWidget.setOriginalY(BANK_EXPAND_Y);
+				activeWidget.setHeightMode(WidgetSizeMode.MINUS);
+				activeWidget.setOriginalHeight(BANK_EXPAND_Y);
+				activeWidget.revalidateScroll();
+			}
+		}
+	}
+
+	// Detects whether a bank search / "enter amount" prompt is active in the chatbox
+	private boolean isBankSearchOpen()
+	{
+		for (int i = 0; i < 60; i++)
+		{
+			Widget child = client.getWidget(InterfaceID.CHATBOX, i);
+			if (child == null || child.isHidden())
+			{
+				continue;
+			}
+			String text = child.getText();
+			if (text != null)
+			{
+				String lower = text.toLowerCase();
+				if (lower.contains("show items whose") || lower.contains("enter amount"))
+				{
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private void fixWidgetBackground()

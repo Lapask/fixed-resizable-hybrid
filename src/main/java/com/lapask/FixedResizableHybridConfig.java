@@ -223,4 +223,17 @@ public interface FixedResizableHybridConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "expandBankWhenChatHidden",
+		name = "Expand Bank When Chat Hidden",
+		description = "Requires \"Wide Chatbox\" to be enabled.<br>"
+			+ "Expands the bank when chat is hidden and keeps its normal size when chat is shown.",
+		position = 4,
+		section = wideChatboxSettings
+	)
+	default boolean expandBankWhenChatHidden()
+	{
+		return false;
+	}
 }
