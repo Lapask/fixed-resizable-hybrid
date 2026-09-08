@@ -223,4 +223,17 @@ public interface FixedResizableHybridConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "expandBankWhenChatHidden",
+		name = "Expand Bank When Chat Hidden",
+		description = "Expands the bank to fill the space freed when the chatbox is hidden.<br>"
+			+ "The bank returns to its normal size when chat or a chatbox prompt (e.g. bank search) is shown.<br>"
+			+ "Follows the existing viewport rules for transparency, viewport centering, and wide chatbox.",
+		position = 99
+	)
+	default boolean expandBankWhenChatHidden()
+	{
+		return false;
+	}
 }

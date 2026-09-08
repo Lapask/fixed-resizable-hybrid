@@ -76,6 +76,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	private boolean cutSceneActive = false;
 	private boolean transparentChatbox = false;
 	private int wideChatViewportOffset = 23; //height of the buttons at the bottom of the chatbox
+	private boolean bankCurrentlyExpanded = false;
 	private List<Integer> widgetsToFixBeforeRender = new ArrayList<Integer>();
 	private static final Set<Integer> WIDGETS_WITH_BACKGROUNDS = Set.of(
 		398, // Fairy ring
@@ -100,6 +101,11 @@ public class FixedResizableHybridPlugin extends Plugin
 	private static final int C_HMODE    = 10;
 	private static final int C_NOCLICK  = 11;
 	private static final int C_TILE     = 12;
+	private static final int BANK_WIDTH = 488;
+	private static final int BANK_MODAL_HEIGHT = 334;
+	private static final int BANK_EXPAND_X = 12;
+	private static final int BANK_EXPAND_Y = 2;
+	private static final int CHATBOX_BUTTON_HEIGHT = 23;
 
 	@Provides
 	FixedResizableHybridConfig provideConfig(ConfigManager configManager)
@@ -226,6 +232,9 @@ public class FixedResizableHybridPlugin extends Plugin
 				//log.debug("script 909: fixInterfaceDimensions()");
 				fixInterfaceDimensions();
 				break;
+			case ScriptID.BANKMAIN_SIZE_CHECK:
+				applyBankChatExpansion();
+				break;
 			case 654: // Stats guide widget opened (osb>214.0>214.1)
 				widgetsToFixBeforeRender.add(InterfaceID.SkillGuide.WINDOW);
 				break;
@@ -277,6 +286,10 @@ public class FixedResizableHybridPlugin extends Plugin
 						fixWidgetBackground();
 					}
 				}
+				else
+				{
+					applyBankChatExpansion();
+				}
 				break;
 			case 4731:
 				// TOB widget fix (party orbs flicker if omitted)
@@ -323,6 +336,10 @@ public class FixedResizableHybridPlugin extends Plugin
 				transparentChatbox = false;
 				wideChatViewportOffset = 23;
 			}
+			if (config.expandBankWhenChatHidden())
+			{
+				clientThread.invokeLater(this::applyBankChatExpansion);
+			}
 		}
 	}
 
@@ -349,6 +366,10 @@ public class FixedResizableHybridPlugin extends Plugin
 			widgetWithBackgroundLoaded = true;
 			widgetsToFixBeforeRender.add(groupID);
 		}
+		if (groupID == InterfaceID.BANKMAIN && config.expandBankWhenChatHidden())
+		{
+			clientThread.invokeLater(this::applyBankChatExpansion);
+		}
 	}
 
 	@Subscribe
@@ -360,6 +381,10 @@ public class FixedResizableHybridPlugin extends Plugin
 		{
 			//log.debug("onWidgetClosed(): fairy ring closed");
 			widgetWithBackgroundLoaded = false;
+		}
+		if (groupID == InterfaceID.BANKMAIN && event.isUnload() && bankCurrentlyExpanded)
+		{
+			resetBankExpansion();
 		}
 	}
 
@@ -406,6 +431,10 @@ public class FixedResizableHybridPlugin extends Plugin
 		{
 			widenChat();
 			setupWideChatboxWidget();
+		}
+		if (config.expandBankWhenChatHidden())
+		{
+			clientThread.invokeLater(this::applyBankChatExpansion);
 		}
 	}
 
@@ -695,7 +724,191 @@ public class FixedResizableHybridPlugin extends Plugin
 			{
 				child.revalidateScroll();
 			}
+			applyBankChatExpansion();
 		}
+	}
+
+	private void applyBankChatExpansion()
+	{
+		if (!widgetsModified || !config.expandBankWhenChatHidden() || getGameClientLayout() != 2)
+		{
+			return;
+		}
+		Widget bank = client.getWidget(InterfaceID.Bankmain.UNIVERSE);
+		if (bank == null || bank.isSelfHidden())
+		{
+			return;
+		}
+		if (isChatboxOpen())
+		{
+			if (bankCurrentlyExpanded)
+			{
+				resetBankExpansion();
+			}
+		}
+		else
+		{
+			expandBank(bank);
+		}
+	}
+
+	private void expandBank(Widget bank)
+	{
+		Widget viewport = client.getWidget(InterfaceID.ToplevelOsrsStretch.VIEWPORT);
+		Widget modal = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAINMODAL);
+		Widget hudFront = client.getWidget(InterfaceID.ToplevelOsrsStretch.HUD_CONTAINER_FRONT);
+		Widget bankLayer = bank.getParent();
+		if (viewport == null || modal == null || hudFront == null || bankLayer == null)
+		{
+			return;
+		}
+
+		// Transparent and non-wide chat buttons overlay the full-height viewport.
+		int chatButtonOverlay = !config.isWideChatbox() || transparentChatbox ? CHATBOX_BUTTON_HEIGHT : 0;
+		int modalHeight = viewport.getHeight() - chatButtonOverlay;
+		int bankHeight = modalHeight - BANK_EXPAND_Y - 1;
+		int modalWidth = modal.getWidth() > 0 ? modal.getWidth() : modal.getOriginalWidth();
+		if (bankHeight < 1)
+		{
+			return;
+		}
+
+		if (bankCurrentlyExpanded
+			&& modal.getOriginalHeight() == modalHeight
+			&& modal.getHeightMode() == WidgetSizeMode.ABSOLUTE
+			&& modal.getYPositionMode() == WidgetPositionMode.ABSOLUTE_TOP
+			&& modal.getOriginalY() == 0
+			&& bankLayer.getWidthMode() == WidgetSizeMode.ABSOLUTE
+			&& bankLayer.getHeightMode() == WidgetSizeMode.ABSOLUTE
+			&& bankLayer.getOriginalWidth() == modalWidth
+			&& bankLayer.getOriginalHeight() == modalHeight
+			&& bank.getXPositionMode() == WidgetPositionMode.ABSOLUTE_LEFT
+			&& bank.getYPositionMode() == WidgetPositionMode.ABSOLUTE_TOP
+			&& bank.getOriginalX() == BANK_EXPAND_X
+			&& bank.getOriginalY() == BANK_EXPAND_Y
+			&& bank.getWidthMode() == WidgetSizeMode.ABSOLUTE
+			&& bank.getHeightMode() == WidgetSizeMode.ABSOLUTE
+			&& bank.getOriginalWidth() == BANK_WIDTH
+			&& bank.getOriginalHeight() == bankHeight
+			&& hudFront.getOriginalHeight() == CHATBOX_BUTTON_HEIGHT)
+		{
+			return;
+		}
+
+		boolean justExpanded = !bankCurrentlyExpanded;
+		bankCurrentlyExpanded = true;
+
+		saveWidgetState(bankLayer);
+		saveWidgetState(modal);
+
+		setHudFrontHeight(CHATBOX_BUTTON_HEIGHT);
+		modal.setHeightMode(WidgetSizeMode.ABSOLUTE);
+		modal.setOriginalHeight(modalHeight);
+		modal.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
+		modal.setOriginalY(0);
+		modal.revalidateScroll();
+		setBankLayerDimensions(bankLayer, modalWidth, modalHeight);
+
+		bank.setXPositionMode(WidgetPositionMode.ABSOLUTE_LEFT);
+		bank.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
+		bank.setOriginalX(BANK_EXPAND_X);
+		bank.setOriginalY(BANK_EXPAND_Y);
+		bank.setWidthMode(WidgetSizeMode.ABSOLUTE);
+		bank.setHeightMode(WidgetSizeMode.ABSOLUTE);
+		bank.setOriginalWidth(BANK_WIDTH);
+		bank.setOriginalHeight(bankHeight);
+		bank.revalidateScroll();
+
+		if (justExpanded && bank.getOnLoadListener() != null)
+		{
+			final Widget rebuildTarget = bank;
+			clientThread.invokeLater(() ->
+				client.createScriptEventBuilder(rebuildTarget.getOnLoadListener())
+					.setSource(rebuildTarget)
+					.build()
+					.run());
+		}
+	}
+
+	private void resetBankExpansion()
+	{
+		if (!bankCurrentlyExpanded)
+		{
+			return;
+		}
+		bankCurrentlyExpanded = false;
+
+		boolean collapseHud = isChatboxOpen() && config.isWideChatbox()
+			&& config.chatboxViewportCentering() && !transparentChatbox;
+		setHudFrontHeight(collapseHud ? 0 : 165);
+
+		Widget modal = client.getWidget(InterfaceID.ToplevelOsrsStretch.MAINMODAL);
+		if (modal != null)
+		{
+			modal.setOriginalHeight(BANK_MODAL_HEIGHT);
+			modal.setYPositionMode(WidgetPositionMode.ABSOLUTE_CENTER);
+			modal.revalidateScroll();
+		}
+
+		Widget bank = client.getWidget(InterfaceID.Bankmain.UNIVERSE);
+		if (bank != null && !bank.isSelfHidden())
+		{
+			Widget bankLayer = bank.getParent();
+			if (bankLayer != null && modal != null)
+			{
+				int modalWidth = modal.getWidth() > 0 ? modal.getWidth() : modal.getOriginalWidth();
+				setBankLayerDimensions(bankLayer, modalWidth, BANK_MODAL_HEIGHT);
+			}
+			bank.setXPositionMode(WidgetPositionMode.ABSOLUTE_CENTER);
+			bank.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
+			bank.setOriginalX(0);
+			bank.setOriginalY(BANK_EXPAND_Y);
+			bank.setWidthMode(WidgetSizeMode.ABSOLUTE);
+			bank.setHeightMode(WidgetSizeMode.MINUS);
+			bank.setOriginalWidth(BANK_WIDTH);
+			bank.setOriginalHeight(BANK_EXPAND_Y);
+			bank.revalidateScroll();
+		}
+	}
+
+	private void setHudFrontHeight(int height)
+	{
+		Widget oldSchoolBox = client.getWidget(InterfaceID.ToplevelOsrsStretch.HUD_CONTAINER_FRONT);
+		if (oldSchoolBox == null || oldSchoolBox.getOriginalHeight() == height)
+		{
+			return;
+		}
+		oldSchoolBox.setOriginalHeight(height);
+		oldSchoolBox.revalidateScroll();
+		for (Widget child : oldSchoolBox.getStaticChildren())
+		{
+			child.revalidateScroll();
+		}
+	}
+
+	// The bank layer's MINUS mode uses the full client instead of MAINMODAL.
+	private void setBankLayerDimensions(Widget bankLayer, int width, int height)
+	{
+		if (bankLayer.getWidthMode() == WidgetSizeMode.ABSOLUTE
+			&& bankLayer.getHeightMode() == WidgetSizeMode.ABSOLUTE
+			&& bankLayer.getOriginalWidth() == width
+			&& bankLayer.getOriginalHeight() == height
+			&& bankLayer.getXPositionMode() == WidgetPositionMode.ABSOLUTE_LEFT
+			&& bankLayer.getYPositionMode() == WidgetPositionMode.ABSOLUTE_TOP
+			&& bankLayer.getOriginalX() == 0
+			&& bankLayer.getOriginalY() == 0)
+		{
+			return;
+		}
+		bankLayer.setWidthMode(WidgetSizeMode.ABSOLUTE);
+		bankLayer.setHeightMode(WidgetSizeMode.ABSOLUTE);
+		bankLayer.setOriginalWidth(width);
+		bankLayer.setOriginalHeight(height);
+		bankLayer.setXPositionMode(WidgetPositionMode.ABSOLUTE_LEFT);
+		bankLayer.setYPositionMode(WidgetPositionMode.ABSOLUTE_TOP);
+		bankLayer.setOriginalX(0);
+		bankLayer.setOriginalY(0);
+		bankLayer.revalidateScroll();
 	}
 
 	private void fixWidgetBackground()
@@ -841,6 +1054,7 @@ public class FixedResizableHybridPlugin extends Plugin
 	{
 		//log.debug("resetWidgets()");
 		clientThread.invoke(() -> {
+			resetBankExpansion();
 			removeAddedWidgets();
 			resetRenderViewport();
 			resetOriginalStates(); // sets widgetModified to false too
